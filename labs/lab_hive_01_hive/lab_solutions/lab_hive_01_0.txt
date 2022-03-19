@@ -1,0 +1,132 @@
+Hive Lab 01.0
+=============
+
+Some useful commands
+====================
+
+
+-----------------------------------------------------------------------------------------------------
+Step 1. Get help for Unix
+-----------------------------------------------------------------------------------------------------
+
+See the manual for a command in Unix.
+
+> man <command>
+
+Press "q" to exit.
+
+Get examples about a unix command.
+
+Just google "<command name> Linux command examples".
+
+
+-----------------------------------------------------------------------------------------------------
+Step 2. Use of HERE files in UNIX
+-----------------------------------------------------------------------------------------------------
+
+Sample bash script to submit commands to hive.
+
+#!/bin/bash
+# This is a bash comment.
+hive <<EOF
+
+-- This is a hive comment.
+SHOW DATABASES
+;
+EOF
+
+Save file run.sh and do a command
+chmod a+x run.sh
+
+
+-----------------------------------------------------------------------------------------------------
+Step 3. Use of HERE files in UNIX capturing the output.
+-----------------------------------------------------------------------------------------------------
+
+Sample bash script to submit commands to hive and save results to a file.
+
+#!/bin/bash
+hive <<EOF > /tmp/results.txt
+
+SELECT ….
+;
+EOF
+
+> cat /tmp/results.txt | egrep -v "^....>" | egrep -v "^WARN"
+
+
+ 
+-----------------------------------------------------------------------------------------------------
+Step 4. See what is being written to a file in Unix.
+-----------------------------------------------------------------------------------------------------
+
+> tail -f filename.txt
+
+You can use this to monitor log 
+files as more lines are being 
+written.
+
+
+-----------------------------------------------------------------------------------------------------
+Step 5. See top lines of of large file in unix.
+-----------------------------------------------------------------------------------------------------
+
+> head -n 10 <file_name>
+
+This allows you to see few lines of a large file.
+
+Try “man head” command to see ‘head’ command manual.
+
+
+-----------------------------------------------------------------------------------------------------
+Step 6. Parsing a text file.
+-----------------------------------------------------------------------------------------------------
+
+head nasa_0701 | cut -d' ' -f 4
+
+The command cut has two parameters 
+  -d for delimiter
+  -f for the field number to select after splitting 
+     using that delimiter.
+
+Also, you can link using sed
+ls -l | sed -e's/  */ /g' | cut -d ' ' -f 3
+
+sed -e's/  */ /g' -> Remove multiple spaces and replace with a single space.
+cut -d ' ' -f 3 -> extracts the third field using space as the field delimiter.
+
+
+This can help you to figure out the names of fields to be used
+In the new Hive table.
+
+-----------------------------------------------------------------------------------------------------
+Step 7. Viewing special chars in a file in VI editor.
+-----------------------------------------------------------------------------------------------------
+
+Type vi <file_name> on the command line.
+
+To quit without making changes type ESC :q!
+
+To save and quit type ESC :x
+
+After opening a file type ESC and then “:set list” to show special chars. (Note: do not type the quotes!)
+
+Type ESC and then “:set nolist” to go back to normal mode.
+
+Type ESC and then “:set number” to add line numbers and 
+ESC and then “:set nonumber” to remove line numbers.
+
+
+-----------------------------------------------------------------------------------------------------
+Step 8. Finding a command you have used in the past.
+-----------------------------------------------------------------------------------------------------
+
+> history | grep <command>
+
+For example you can see the 'cd' commands you have issued in the past by typing.
+
+> history | grep cd
+
+
+ 
+

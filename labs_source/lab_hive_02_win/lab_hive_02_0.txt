@@ -1,0 +1,128 @@
+Hive Lab 02.1
+=============
+
+In this exercise you will be working with the Bike sharing dataset located at /srv/hadoop/data/data_bikes.
+
+
+------------------------------------------------------------------------------------------------------
+Step 1. Create the following directory in HDFS.
+------------------------------------------------------------------------------------------------------
+
+MY_USER=marilson
+hdfs dfs -mkdir -p s3a://hdfs-files-2020-01/${MY_USER}/data/bikes_data/
+
+
+Replace 'marilson' with your 'student name'
+
+
+
+
+------------------------------------------------------------------------------------------------------
+Step 2. Load data from the local dir into HDFS at s3a://hdfs-files-2020-01/${MY_USER}/data/bike_data/.
+------------------------------------------------------------------------------------------------------
+
+
+There is a directory “/srv/hadoop/data/data_bikes” containing a single file to be loaded.
+
+cd into that directory and type the command below to confirm the file format:
+
+> head trip_w78.csv
+
+Issue the commands to load the file
+
+cd /srv/hadoop/data/data_bikes
+MY_USER=marilson
+hdfs dfs -put trip_w78.csv s3a://hdfs-files-2020-01/${MY_USER}/data/bikes_data
+
+
+hdfs dfs -ls s3a://hdfs-files-2020-01/${MY_USER}/data/bikes_data/
+
+
+
+
+-----------------------------------------------------------------------------------------------------
+Step 3. Create external table access the bike sharing dataset.
+-----------------------------------------------------------------------------------------------------
+
+Create a create table statement and paste into the hive cmd line.
+
+SET user_db=marilson;
+
+DROP TABLE IF EXISTS ${hiveconf:user_db}.bike_rides;
+
+CREATE EXTERNAL TABLE ${hiveconf:user_db}.bike_rides (
+  duration INT,
+  start_time STRING,
+  end_time STRING,
+  start_station_number INT,
+  start_station STRING,
+  end_station_number INT,
+  end_station STRING,
+  bike_number STRING,
+  member_type STRING
+)
+ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.OpenCSVSerde'
+WITH SERDEPROPERTIES (
+   "separatorChar" = ",",
+   "quoteChar"     = "\""
+)
+STORED AS TEXTFILE
+LOCATION 's3a://hdfs-files-2020-01/${hiveconf:user_db}/data/bikes_data'
+;
+
+ALTER TABLE ${hiveconf:user_db}.bike_rides SET TBLPROPERTIES ("skip.header.line.count"="1");
+
+
+ 
+-----------------------------------------------------------------------------------------------------
+Step 4. Test the table using queries like below
+-----------------------------------------------------------------------------------------------------
+
+SET user_db=marilson;
+select * from ${hiveconf:user_db}.bike_rides limit 10; 
+
+describe ${hiveconf:user_db}.bike_rides;
+
+
+
+-----------------------------------------------------------------------------------------------------
+Step 5. Count the number rides for each hour of the start_time.
+-----------------------------------------------------------------------------------------------------
+
+Create a program called 'count_rides.sh' with the following contents.
+
+#!/bin/bash -x
+
+RESULT_FILE=/tmp/ride_counts.txt
+
+USER_DB=marilson
+
+hive <<EOF | egrep -v "^....>" > ${RESULT_FILE}
+
+SET user_db=marilson;
+
+WITH hour_mapped AS (
+  SELECT
+    SUBSTR(start_time, 12, 2) as the_hour
+  FROM ${USER_DB}.bike_rides
+
+)
+
+SELECT
+  the_hour, count(1)
+FROM hour_mapped
+GROUP BY the_hour
+ORDER BY the_hour
+;
+EOF
+
+echo -n "Totals: "
+cat ${RESULT_FILE}
+
+
+After issue these commands to allow execution and execute the program.
+
+chmod a+x query_hadoop.sh
+./query_hadoop.sh
+
+

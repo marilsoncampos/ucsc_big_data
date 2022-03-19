@@ -1,0 +1,178 @@
+Hive Lab 01.2
+=============
+
+In this exercise you need to load the Nasa files to calculate the frequency of requests for each html sub-directory.
+
+Note: On the field containing values like:
+  “GET /history/apollo/ HTTP/1.0”
+  
+We need to extract the string “history"
+
+Also, we need the code (http error code) and size (page size) fields.
+
+Each line looks like this:
+
+Ip           dummy dummy date                         http_command                    code  size
+199.72.81.55 -     -     [01/Jul/1995:00:00:01 -0400] "GET /history/apollo/ HTTP/1.0" 200   6245
+
+------------------------------------------------------------------------------------------------------------------------------
+Step 1. Create HDFS location for nasa files at ‘s3a://hdfs-files-2020-01/<user>/data/nasa_data/’
+------------------------------------------------------------------------------------------------------------------------------
+
+-- solution-begin --
+
+ hdfs dfs -mkdir -p s3a://hdfs-files-2020-01/<user>/data/nasa_data/
+
+-- solution-end --
+
+------------------------------------------------------------------------------------------------------------------------------
+Step 2. Look at the file ‘data/data_nasa/nasa_0701’ at the local filesystem and 
+confirm the file format complies with the spec.
+------------------------------------------------------------------------------------------------------------------------------
+
+-- solution-begin --
+
+cd /srv/hadoop/data/data_nasa
+head -n 20 nasa_0701
+or 
+view nasa_0701
+
+-- solution-end --
+
+------------------------------------------------------------------------------------------------------------------------------
+Step 3. Load the '/srv/hadoop/data/data_nasa' file into the HDFS 
+s3a://hdfs-files-2020-01/<user>/data/nasa_data/ folder.
+------------------------------------------------------------------------------------------------------------------------------
+
+-- solution-begin --
+
+cd /srv/hadoop/data/data_nasa
+hdfs dfs -mkdir -p s3a://hdfs-files-2020-01/<user>/data/nasa_data/
+hdfs dfs -put  nasa_0701 s3a://hdfs-files-2020-01/<user>/data/nasa_data/
+
+-- solution-end --
+
+------------------------------------------------------------------------------------------------------------------------------
+Step 4. Define a "CREATE TABLE" statement to parse the required fields.
+------------------------------------------------------------------------------------------------------------------------------
+
+-- solution-begin --
+
+CREATE EXTERNAL TABLE <user>.nasa_raw (
+  ip_address string, 
+  dummy_1 string, 
+  dummy_2 string, 
+  raw_date string, 
+  raw_timezone string, 
+  dummy_3 string, 
+  html_page string, 
+  http_version string, 
+  http_error_code string, 
+  size int)
+ROW FORMAT DELIMITED
+   FIELDS TERMINATED BY ' '
+   LINES TERMINATED BY '\n'
+STORED AS TEXTFILE
+LOCATION "s3a://hdfs-files-2020-01/<user>/data/nasa_data/";
+
+-- solution-end --
+
+------------------------------------------------------------------------------------------------------------------------------
+Step 5. List the most common sub-directories with their count.
+------------------------------------------------------------------------------------------------------------------------------
+
+-- solution-begin --
+
+Simple version:
+SELECT * FROM (
+  SELECT 
+    sub_dir, 
+    count(*) AS counted
+  FROM (
+    SELECT SPLIT(html_page, "/")[1] AS sub_dir
+    FROM <user>.nasa_raw
+  ) q1
+  GROUP BY sub_dir
+) q2
+ORDER BY q2.counted DESC
+LIMIT 10; 
+ 
+
+Solution with CTE:
+
+WITH grouped_by_subdir AS (
+  SELECT 
+    sub_dir, 
+    count(*) AS counted
+  FROM (
+    SELECT SPLIT(html_page, "/")[1] AS sub_dir
+    FROM <user>.nasa_raw
+  ) q1
+  GROUP BY sub_dir
+)
+
+SELECT * 
+FROM grouped_by_subdir
+ORDER BY counted DESC
+LIMIT 10; 
+
+-- solution-end --
+
+ 
+------------------------------------------------------------------------------------------------------------------------------
+Step 6. List the codes and their count ordered by most frequent 
+to least frequent.
+------------------------------------------------------------------------------------------------------------------------------
+
+-- solution-begin --
+
+SELECT q1.http_error_code, q1.counted 
+FROM (
+  SELECT http_error_code, count(*) AS counted
+  FROM <user>.nasa_raw
+  GROUP BY http_error_code
+) q1
+ORDER BY q1.counted DESC
+LIMIT 10;
+
+-- solution-end --
+
+------------------------------------------------------------------------------------------------------------------------------
+Step 7. List the average page size for each error code.
+------------------------------------------------------------------------------------------------------------------------------
+
+-- solution-begin --
+
+SELECT http_error_code, avg_size FROM (
+  SELECT 
+    http_error_code, 
+    round(avg(size), 2) AS avg_size 
+  FROM <user>.nasa_raw
+  GROUP BY http_error_code
+) q1
+WHERE avg_size IS NOT NULL
+ORDER BY avg_size DESC;
+
+Our data is not completely parsed correctly. We can adapt the SQL to filter the unwanted 
+rows and fix the data later.
+
+SELECT 
+  http_error_code, 
+  avg_size 
+FROM (
+  SELECT 
+    http_error_code, 
+    count(*) as counted,
+    round(avg(size), 2) AS avg_size 
+  FROM <user>.nasa_raw
+  GROUP BY http_error_code
+) q1
+WHERE 
+  avg_size IS NOT NULL
+  AND counted > 3
+ORDER BY avg_size DESC;
+
+-- solution-end --
+
+
+                                          - x - x - x - x -

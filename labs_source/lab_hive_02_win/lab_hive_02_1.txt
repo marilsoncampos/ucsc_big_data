@@ -1,0 +1,266 @@
+Hive Lab 02.1
+=============
+
+In this exercise you will be working with dataset. 
+
+-----------------------------------------------------------------------------------------------------
+Step 1. List the cumulative bike duration based on the start_time.
+-----------------------------------------------------------------------------------------------------
+
+Show start_time, duration, and cumulative total duration
+Limit the results to 25 records.
+
+-- solution-begin --
+
+SELECT 
+  start_time, duration,
+  SUM(duration) OVER (ORDER BY start_time) AS running_total
+FROM bike_rides
+LIMIT 25
+;
+
+-- solution-end --
+
+
+-----------------------------------------------------------------------------------------------------
+Step 2. List the cumulative bike duration based on the start_time for each start_station.
+-----------------------------------------------------------------------------------------------------
+
+Show start_station, start_time, duration, and cumulative total duration
+Limit the results to 40 records.
+
+
+-- solution-begin --
+
+SELECT 
+  start_station,
+  start_time,
+  duration,
+  SUM(duration) OVER
+    (PARTITION BY start_station ORDER BY start_time)
+     AS running_total
+FROM bike_rides
+LIMIT 40
+;
+
+-- solution-end --
+
+-----------------------------------------------------------------------------------------------------
+Step 3. List the cumulative bike duration based on the start_time for each start_station in 
+        the first five rides starting on each station.
+-----------------------------------------------------------------------------------------------------
+
+Show start_station, start_time, duration, and cumulative total duration
+Limit the results to 40 records.
+
+
+-- solution-begin --
+
+WITH nmbered_rides AS (
+SELECT 
+  start_station,
+  start_time,
+  duration,
+  SUM(duration) OVER
+    (PARTITION BY start_station ORDER BY start_time)
+     AS running_total,
+  ROW_NUMBER() OVER (PARTITION BY start_station ORDER BY start_time)
+     AS ride_num
+FROM bike_rides
+)
+
+SELECT * FROM nmbered_rides
+WHERE ride_num <= 5
+LIMIT 40
+;
+
+-- solution-end --
+
+
+-----------------------------------------------------------------------------------------------------
+Step 4. List the percent of duration for the rides in each start station.
+-----------------------------------------------------------------------------------------------------
+
+Show  start_station, start_time, duration, total duration for each station and percent of duration.
+Limit the results to 40 records and order them by start_station.
+
+-- solution-begin --
+
+SELECT 
+  start_station,
+  start_time,
+  duration,
+  SUM(duration) OVER (PARTITION BY start_station) AS start_terminal_total,
+  ROUND(100.0 * duration/SUM(duration) OVER (PARTITION BY start_station), 2) AS percent_duration
+FROM bike_rides
+ORDER BY start_station
+LIMIT 40
+;
+
+-- solution-end --
+
+
+
+-----------------------------------------------------------------------------------------------------
+Step 5. Select the top three most busy hours for each station
+-----------------------------------------------------------------------------------------------------
+
+-- solution-begin --
+
+DROP TEMPORARY MACRO IF EXISTS hour_slot;
+CREATE TEMPORARY MACRO hour_slot (dt_str STRING)
+  SUBSTRING(dt_str, 12, 2);
+
+WITH rides_map_to_hour AS (
+SELECT
+  start_station,
+  hour_slot(start_time) AS time_slot,
+  count(1) AS total_rides
+FROM bike_rides
+GROUP BY start_station, hour_slot(start_time)
+),
+ranked_by_station_hour AS (
+SELECT
+  start_station,
+  time_slot,
+  total_rides,
+  RANK() OVER
+   (PARTITION BY start_station ORDER BY total_rides DESC) AS rides_rank
+FROM rides_map_to_hour
+)
+
+SELECT *
+FROM ranked_by_station_hour
+WHERE rides_rank <= 3
+LIMIT 40
+;
+
+-- solution-end --
+
+
+
+-----------------------------------------------------------------------------------------------------
+Step 6. Select the top three most busy hours for each station. Duplicate ranks count as 1 
+-----------------------------------------------------------------------------------------------------
+
+-- solution-begin --
+
+DROP TEMPORARY MACRO IF EXISTS hour_slot;
+CREATE TEMPORARY MACRO hour_slot (dt_str STRING)
+  SUBSTRING(dt_str, 12, 2);
+
+WITH rides_map_to_hour AS (
+SELECT
+  start_station,
+  hour_slot(start_time) AS time_slot,
+  count(1) AS total_rides
+FROM bike_rides
+GROUP BY start_station, hour_slot(start_time)
+),
+ranked_by_station_hour AS (
+SELECT
+  start_station,
+  time_slot,
+  total_rides,
+  DENSE_RANK() OVER
+   (PARTITION BY start_station ORDER BY total_rides DESC) AS rides_rank
+FROM rides_map_to_hour
+)
+
+SELECT *
+FROM ranked_by_station_hour
+WHERE rides_rank <= 3
+LIMIT 40
+;
+
+-- solution-end --
+
+
+
+-----------------------------------------------------------------------------------------------------
+Step 7. List the most 3 busiest and least 3 busiest hour slots with a window of size 3. 
+-----------------------------------------------------------------------------------------------------
+
+Window of 3 means average the previous slot, the next slot and the current slot.
+
+-- solution-begin --
+
+DROP TEMPORARY MACRO IF EXISTS hour_slot;
+CREATE TEMPORARY MACRO hour_slot (dt_str STRING)
+  SUBSTRING(dt_str, 12, 2);
+
+WITH rides_map_to_hour AS (
+SELECT
+  hour_slot(start_time) AS time_slot,
+  ROUND(SUM(duration), 2) as total_duration,
+  COUNT(1) AS number_of_rides
+FROM bike_rides
+GROUP BY hour_slot(start_time)
+),
+avg_3_slots AS (
+SELECT 
+  time_slot,
+  ROUND(SUM(total_duration) OVER window_spec/SUM(number_of_rides) OVER window_spec, 2) AS avg_3h_duration
+FROM rides_map_to_hour
+WINDOW window_spec AS
+   (ORDER BY time_slot ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING)
+),
+most_busy_hour_slots AS (
+SELECT 
+  time_slot, avg_3h_duration
+FROM avg_3_slots
+ORDER BY avg_3h_duration DESC
+LIMIT 3
+),
+least_busy_hour_slots AS (
+SELECT 
+  time_slot, avg_3h_duration
+FROM avg_3_slots
+ORDER BY avg_3h_duration 
+LIMIT 3
+)
+
+SELECT * FROM (
+  SELECT * FROM most_busy_hour_slots
+  UNION ALL 
+  SELECT * FROM least_busy_hour_slots
+) q1
+;
+
+-- solution-end --
+
+
+-----------------------------------------------------------------------------------------------------
+Step 8. List the two hour slots with largest increase in number of rides from previous hour.
+-----------------------------------------------------------------------------------------------------
+
+-- solution-begin --
+
+
+DROP TEMPORARY MACRO IF EXISTS hour_slot;
+CREATE TEMPORARY MACRO hour_slot (dt_str STRING)
+  SUBSTRING(dt_str, 12, 2);
+
+WITH rides_map_to_hour AS (
+SELECT
+  hour_slot(start_time) AS time_slot,
+  COUNT(1) AS number_of_rides
+FROM bike_rides
+GROUP BY hour_slot(start_time)
+),
+slot_deltas AS (
+SELECT 
+  time_slot,
+  number_of_rides - LAG(number_of_rides) OVER(ORDER BY time_slot) AS ride_increase
+FROM rides_map_to_hour
+)
+
+SELECT 
+  time_slot, ride_increase
+FROM slot_deltas
+ORDER BY ride_increase DESC
+LIMIT 2
+;
+
+-- solution-end --
+

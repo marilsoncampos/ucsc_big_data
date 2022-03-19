@@ -1,0 +1,79 @@
+
+Exercise 1
+==========
+
+In this exercise we are looking at Hive UDFs.
+
+1.1 Look at the grid-pdfs java project
+--------------------------------------
+
+cd /shared/lab_c2_udf/grid-udfs
+
+Open the Java code for the AstrologicalSign function located at src/main/java/edu/ucsc/grid/udf/AstrologicalSign.java
+
+1.2 Building the jar file from the source code
+----------------------------------------------
+
+In order to build the source code you need connection to the internet. We are building the 
+jar in your local computer and not using the Virtual Machine.
+
+Open a terminal and cd into the location you copied the lab_c2_udf directory.
+
+cd into the 'grid-udfs' directory in your local computer.
+
+Issue the command:
+> mvn package
+
+This command will build and package the java code for our Hive user defined function.
+
+After this command completes a new jar file named "grid.udf-1.0.0-fat.jar" is available a the "target" directory. 
+
+1.3 Using the Hive UDF in a script
+----------------------------------
+
+Now back into the Virtual Machine. 
+cd /shared/lab_c2_udf
+
+Execute the test script using the command:
+
+ ./test_hive_udf_single.sh
+
+You should see a message like this:
+
+The astrological sign for a person born in 2018-11-04 is Scorpio
+
+There is another script that calls the function using several dates that is used for verification.
+
+In production this should be converted into automated 'test cases'.
+
+
+1.4 Using the Hive UDF in hive session
+--------------------------------------
+
+Enter the hive shell by calling:
+
+hive
+
+You should see a prompt like this:
+
+hive>
+
+Now you need to add the jar that contains the function and register the function.
+
+From the hive session issue the following commands:
+
+ADD JAR /shared/lab_c2/grid-udfs/target/grid.udf-1.0.0-fat.jar;  
+
+CREATE TEMPORARY FUNCTION astro_sign AS 'edu.ucsc.grid.udf.AstrologicalSign';
+
+Now you can get help for the function by issuing the command:
+
+DESCRIBE FUNCTION EXTENDED astro_sign;
+
+Finally you can invoke the function like below using your birth date.
+
+SELECT astro_sign('2001-11-04');
+
+
+
+

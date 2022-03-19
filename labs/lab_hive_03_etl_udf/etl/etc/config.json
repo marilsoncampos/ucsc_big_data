@@ -1,0 +1,9 @@
+{
+  "hdfs_locations": {
+    "temp_load": "/data/temp_nasa",
+    "warehouse": "/user/hive/warehouse/"
+  },
+  "report": {
+    "email": "student@ucsc.edu"
+  }
+}

@@ -1,0 +1,68 @@
+Big Rides Lab
+=============
+
+In this exercise you will be working with the bike_rides dataset. 
+The file to be loaded are stored inside of the data directory.
+
+
+-----------------------------------------------------------------------------------------------------
+Step 1. Create the following directory in HDFS.
+-----------------------------------------------------------------------------------------------------
+
+/data/<user>/bike_rides
+
+
+-- solution-begin --
+
+hdfs dfs -mkdir -p /data/<user>bike_rides
+
+-- solution-end --
+
+
+1.2 Load data data into /data/<user>/bike_rides hdfs path.
+
+
+Inside of the directory “lab_c4_win” there is a sub-directory “data” with a
+file called trip_w78.csv.
+
+-- solution-begin --
+
+cd /shared/lab_c4_win/data/
+hdfs dfs -put trip_w78.csv /data/bike_rides/
+
+-- solution-end --
+
+ 
+1.3 Create external table called 'bike_rides' to match the HDFS files.
+
+
+CREATE EXTERNAL TABLE bike_rides (
+  duration INT,
+  start_time STRING,
+  end_time STRING,
+  start_station_number INT,
+  start_station STRING,
+  end_station_number INT,
+  end_station STRING,
+  bike_number STRING,
+  member_type STRING
+)
+ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.OpenCSVSerde'
+WITH SERDEPROPERTIES (
+   "separatorChar" = ",",
+   "quoteChar"     = "\""
+)
+STORED AS TEXTFILE
+LOCATION '/data/bike_rides'
+;  
+
+There is a file called create_table.sh with the complete command.
+
+1.4 Test the table using queries like below
+
+select * from bike_rides limit 20; 
+
+ 
+
+
+

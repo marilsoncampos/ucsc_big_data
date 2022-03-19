@@ -1,0 +1,139 @@
+Hive Lab 01.1
+=============
+
+In this exercise you will be working with the movie lens dataset. 
+
+-----------------------------------------------------------------------------------------------------
+Step 1. Create the following directory in HDFS.
+-----------------------------------------------------------------------------------------------------
+
+s3a://hdfs-files-2020-01/<user>/data/movies_data/links
+s3a://hdfs-files-2020-01/<user>/data/movies_data/movies
+s3a://hdfs-files-2020-01/<user>/data/movies_data/ratings
+s3a://hdfs-files-2020-01/<user>/data/movies_data/tags
+
+
+
+-----------------------------------------------------------------------------------------------------
+Step 2. Load data from the local host into HDFS location s3a://hdfs-files-2020-01/<user>/movies_data.
+-----------------------------------------------------------------------------------------------------
+
+
+There is a directory “/srv/hadoop/data/data_movies” containing the files to be loaded.
+
+cd into that directory and type the command below to confirm the file format:
+
+> head movies.csv
+
+
+
+
+-----------------------------------------------------------------------------------------------------
+Step 3. Create external table to match the HDFS files for movies.
+-----------------------------------------------------------------------------------------------------
+
+Create a create table statement and paste into the hive cmd line.
+
+
+ 
+-----------------------------------------------------------------------------------------------------
+Step 4. Test the table using queries like below
+-----------------------------------------------------------------------------------------------------
+
+select * from <user>.movies limit 20; 
+
+Solution: N/A
+
+
+
+-----------------------------------------------------------------------------------------------------
+Step 5. Perform the load to the other tables.
+-----------------------------------------------------------------------------------------------------
+
+Notice that the Ratings file contains the following fields:
+userId, movieId, rating, timestamp
+
+
+-----------------------------------------------------------------------------------------------------
+Step 6. Count the number of movies in the "movies" table.
+-----------------------------------------------------------------------------------------------------
+
+Create a program called 'query_hadoop.sh' with the following contents.
+#!/bin/bash
+
+hive <<EOF | egrep -v "^....>" > /tmp/num_movies.txt
+SELECT count(*) FROM <user>.MOVIES
+;
+EOF
+
+echo -n "Total movies: "
+cat /tmp/num_movies.txt
+
+# -- file ends here ---
+
+
+After issue these commands to allow execution and execute the program.
+
+chmod a+x query_hadoop.sh
+./query_hadoop.sh
+
+
+Solution: N/A
+
+---------------------------------------------------------------------------------------------------------
+Step 7. List the "movies_ids", total ratings and average rating for the 10 most rated movies.
+---------------------------------------------------------------------------------------------------------
+
+
+
+-----------------------------------------------------------------------------------------------------
+Step 8. List the "movie titles", number of ratings and their average rating for 
+the most frequently rated movies.
+-----------------------------------------------------------------------------------------------------
+
+
+
+-----------------------------------------------------------------------------------------------------
+Step 9. Calculate the top 10 years that had most "Comedy" movies. List the year 
+and the number of comedy movies on that year.
+-----------------------------------------------------------------------------------------------------
+
+Hint: Use the following query to extract the year from the 
+Title in the movie table.
+
+select  
+  regexp_extract(title, '(.*)\\((.*)\\)', 1) as movie_name,
+  regexp_extract(title, '(.*)\\((.*)\\)', 2) as year
+from 
+  movies 
+where array_contains(genres, 'Comedy') limit 10;
+
+
+
+ 
+-----------------------------------------------------------------------------------------------------
+Step 10.  List the number of distinct tags on the tags table.
+-----------------------------------------------------------------------------------------------------
+
+provide the hive sql 
+
+
+-----------------------------------------------------------------------------------------------------
+Step 11. Find the most 10 common tags used.
+-----------------------------------------------------------------------------------------------------
+
+Provide the hive sql to solve the problem
+
+
+
+-----------------------------------------------------------------------------------------------------
+Step 12. Find total average rating across all movies.
+-----------------------------------------------------------------------------------------------------
+
+Provide the hive sql to solve the problem
+
+
+
+
+
+                                         - x - x - x - x -

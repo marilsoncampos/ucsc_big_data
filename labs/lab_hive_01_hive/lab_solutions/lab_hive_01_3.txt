@@ -1,0 +1,173 @@
+Hive Lab 01.3
+=============
+
+In this exercise we are going to use the same Nasa dataset. 
+
+Our goal now is to be more precise in extracting the fields and to create a 'clean table' with the fields we care.
+
+
+------------------------------------------------------------------------------------------------------------------------------
+Step 1. Initialization of the hive partitioned table final location for the data.
+------------------------------------------------------------------------------------------------------------------------------
+
+- Create managed hive table called ‘nasa_daily’.
+
+This table is partitioned by day and is supposed to have fields
+  host STRING, request_time STRING, page_url STRING
+  error_code INT, page_size INT
+
+
+Solution:
+
+CREATE TABLE <user>.nasa_daily (
+  host STRING,
+  request_time STRING,
+  page_url STRING COMMENT "the page",
+  http_code STRING,
+  page_size INT
+) 
+PARTITIONED BY(dt_date STRING);
+
+
+------------------------------------------------------------------------------------------------------------------------------
+Step 2. Look at the schema of the external table we created on the previous exercise.
+------------------------------------------------------------------------------------------------------------------------------
+
+Solution:
+
+DESCRIBE nasa_raw;
+or
+SHOW CREATE TABLE nasa_raw;
+
+Results:
+CREATE EXTERNAL TABLE `<user>.nasa_raw`(
+  `ip_address` string,
+  `dummy_1` string,
+  `dummy_2` string,
+  `raw_date` string,
+  `raw_timezone` string,
+  `dummy_3` string,
+  `html_page` string,
+  `http_version` string,
+  `http_error_code` string,
+  `size` int)
+ROW FORMAT SERDE
+  'org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe'
+WITH SERDEPROPERTIES (
+  'field.delim'=' ',
+  'line.delim'='\n',
+  'serialization.format'=' ')
+STORED AS INPUTFORMAT
+  'org.apache.hadoop.mapred.TextInputFormat'
+OUTPUTFORMAT
+  'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
+LOCATION
+  's3a://hdfs-files-2020-01/<user>/data/nasa_data'
+TBLPROPERTIES (
+  'transient_lastDdlTime'='1596878256')
+
+
+
+------------------------------------------------------------------------------------------------------------------------------
+Step 3. Select few records where size is null.
+------------------------------------------------------------------------------------------------------------------------------
+
+Solution:
+
+select * from <user>.nasa_raw where size is null limit 10;
+
+
+------------------------------------------------------------------------------------------------------------------------------
+Step 4. From the previous exercise we can see that some fields were parsed incorrectly. Let’s try to create another external table using the backslash to separate the fields.
+------------------------------------------------------------------------------------------------------------------------------
+
+Solution:
+
+CREATE EXTERNAL TABLE <user>.nasa_raw_etl (
+  FLD_1 STRING,   
+  GET_URL STRING,  
+  FLD_2 STRING)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY "\""
+LOCATION 's3a://hdfs-files-2020-01/<user>/data/nasa_data';
+
+
+------------------------------------------------------------------------------------------------------------------------------
+ Step 5. Create a select to extract the fields we care.
+------------------------------------------------------------------------------------------------------------------------------
+
+Solution:
+
+SELECT 
+  regexp_extract(FLD_1, '(.*?) (.*?)', 1) as host,
+  regexp_extract(FLD_1, '(.*?)\\[(.*?) ', 2) as request_time,
+  regexp_extract(GET_URL, 'GET (.*?) (.*?)', 1) as page_url,
+  regexp_extract(FLD_2, '([0-9].*) (.*)', 1) as error_code,
+  regexp_extract(FLD_2, '([0-9].*) ([0-9].*)', 2) as page_size
+FROM <user>.nasa_raw_etl
+LIMIT 20;
+
+
+------------------------------------------------------------------------------------------------------------------------------
+Step 6. Create an INSERT OVERWRITE statement using the select from previous step.
+------------------------------------------------------------------------------------------------------------------------------
+
+Solution:
+
+INSERT OVERWRITE TABLE <user>.nasa_daily 
+  PARTITION(dt_date = "1995-07-01") 
+SELECT 
+  regexp_extract(FLD_1, '(.*?) (.*?)', 1) as host,
+  regexp_extract(FLD_1, '(.*?)\\[(.*?) ', 2) as request_time,
+  regexp_extract(GET_URL, 'GET (.*?) (.*?)', 1) as page_url,
+  regexp_extract(FLD_2, '([0-9].*) (.*)', 1) as error_code,
+  regexp_extract(FLD_2, '([0-9].*) ([0-9].*)', 2) as page_size
+FROM <user>.nasa_raw_etl;
+
+
+------------------------------------------------------------------------------------------------------------------------------
+Step 7. Create report with the total counts per day.
+------------------------------------------------------------------------------------------------------------------------------
+
+Solution:
+
+SELECT 
+  dt_date, 
+  count(*) AS counted
+FROM <user>.nasa_daily 
+GROUP BY dt_date
+ORDER BY dt_date;
+
+
+------------------------------------------------------------------------------------------------------------------------------
+Step 8. Create report with the daily counts for each http_code.
+------------------------------------------------------------------------------------------------------------------------------
+
+Solution:
+
+SELECT 
+  dt_date, 
+  http_code,
+  count(*) AS counted
+FROM <user>.nasa_daily 
+GROUP BY dt_date, http_code
+ORDER BY dt_date, http_code;
+
+
+------------------------------------------------------------------------------------------------------------------------------
+Step 9. Create a report with the average page size per day
+------------------------------------------------------------------------------------------------------------------------------
+
+Solution:
+
+SELECT 
+  dt_date, 
+  round(avg(page_size), 2) AS avg_size
+FROM <user>.nasa_daily 
+GROUP BY dt_date
+ORDER BY dt_date;
+
+
+
+
+
