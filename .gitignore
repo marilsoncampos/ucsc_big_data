@@ -1,9 +1,15 @@
+lab_setup/saved_users.csv
+lab_setup/students_2022.txt
+
 # Compiled class file
+
 *.class
+**/.idea
+**/__pycache__
 
 # Log file
 *.log
-
+*._.
 # BlueJ files
 *.ctxt
 
@@ -11,6 +17,7 @@
 .mtj.tmp/
 
 # Package Files #
+**/*.pyc
 *.jar
 *.war
 *.nar
