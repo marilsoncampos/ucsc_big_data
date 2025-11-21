@@ -11,9 +11,7 @@ Here is the initial list of folder for this repository:
 ```markdown
 - Git setup
 - Java Setup
-- Scala Setup
-- AWS setup
-- ssh connections for hosts used.
+- Python Setup
 ```
 
 ### Notes
