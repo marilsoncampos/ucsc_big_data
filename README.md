@@ -1,4 +1,4 @@
-## UCSC - Apache Spark with Scala - Introduction
+## UC Santa Cruz - Big Data with Hadoop 
 
 This the repository contains Marilson Campos __Big Data with Hadoop__ course at UC Santa Cruz.
 
